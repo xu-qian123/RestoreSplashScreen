@@ -4,6 +4,8 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
 }
 
+import java.util.Properties
+
 android {
     namespace = "com.gswxxn.restoresplashscreen"
     compileSdk = 37
@@ -33,25 +35,23 @@ android {
     }
 
     // 签名: 优先读环境变量 (CI), 其次读 local.properties
-    val localProps = java.util.Properties().apply {
-        val f = rootProject.file("local.properties")
-        if (f.exists()) f.inputStream().use { load(it) }
-    }
+    val localProps = Properties()
+    rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { localProps.load(it) }
     fun prop(name: String): String =
         System.getenv(name) ?: localProps.getProperty(name.lowercase().replace('_', '.'), "")
-    val keystorePath = prop("KEYSTORE_PATH")
-    val keystorePass = prop("KEYSTORE_PASS")
-    val keyAlias = prop("KEY_ALIAS")
-    val keyPassword = prop("KEY_PASSWORD")
-    val isKeyStoreAvailable = keystorePath.isNotBlank() && keystorePass.isNotBlank() &&
-        keyAlias.isNotBlank() && keyPassword.isNotBlank()
+    val ksPath = prop("KEYSTORE_PATH")
+    val ksPass = prop("KEYSTORE_PASS")
+    val ksAlias = prop("KEY_ALIAS")
+    val ksPassword = prop("KEY_PASSWORD")
+    val isKeyStoreAvailable = ksPath.isNotBlank() && ksPass.isNotBlank() &&
+        ksAlias.isNotBlank() && ksPassword.isNotBlank()
     if (isKeyStoreAvailable) {
         signingConfigs {
             create("universal") {
-                storeFile = file(keystorePath)
-                storePassword = keystorePass
-                keyAlias = keyAlias
-                keyPassword = keyPassword
+                storeFile = file(ksPath)
+                storePassword = ksPass
+                keyAlias = ksAlias
+                keyPassword = ksPassword
                 enableV1Signing = true
                 enableV2Signing = true
                 enableV3Signing = true
