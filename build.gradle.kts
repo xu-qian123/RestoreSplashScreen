@@ -1,4 +1,5 @@
 plugins {
-    autowire(libs.plugins.com.android.application) apply false
-    autowire(libs.plugins.org.jetbrains.kotlin.android) apply false
+    id("com.android.application") version "8.13.0" apply false
+    id("org.jetbrains.kotlin.android") version "2.1.21" apply false
+    id("org.jetbrains.kotlin.plugin.serialization") version "2.1.21" apply false
 }

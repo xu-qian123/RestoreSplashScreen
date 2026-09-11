@@ -16,11 +16,9 @@ import com.gswxxn.restoresplashscreen.ui.ColorSelectActivity
 import com.gswxxn.restoresplashscreen.ui.ConfigAppsActivity
 import com.gswxxn.restoresplashscreen.ui.SubSettings
 import com.gswxxn.restoresplashscreen.ui.`interface`.ISubSettings
-import com.gswxxn.restoresplashscreen.utils.YukiHelper.isMIUI
+import com.gswxxn.restoresplashscreen.utils.prefs
 import com.gswxxn.restoresplashscreen.view.BlockMIUIItemData
 import com.gswxxn.restoresplashscreen.view.SwitchView
-import com.highcapable.yukihookapi.hook.factory.hasClass
-import com.highcapable.yukihookapi.hook.factory.prefs
 
 /**
  * 背景 界面
@@ -90,7 +88,7 @@ object BackgroundSettings : ISubSettings {
             2 to context.getString(R.string.follow_system))
         val colorModeBinding = getDataBinding(colorModeItems[context.prefs().get(DataConst.BG_COLOR_MODE)]!!)
         TextSummaryWithSpinner(
-            TextSummaryV(textId = R.string.color_mode, tipsId = if (isMIUI) R.string.color_mode_tips else null), SpinnerV(colorModeItems[context.prefs().get(
+            TextSummaryV(textId = R.string.color_mode, tipsId = R.string.color_mode_tips), SpinnerV(colorModeItems[context.prefs().get(
                 DataConst.BG_COLOR_MODE)]!!, dataBindingSend = colorModeBinding.bindingSend) {
             for (item in colorModeItems) {
                 add(item.value) {
@@ -115,18 +113,16 @@ object BackgroundSettings : ISubSettings {
 
         Line()
 
-        // 忽略深色模式
-        if (isMIUI)
-            TextSummaryWithSwitch(
-                TextSummaryV(textId = R.string.ignore_dark_mode, tipsId = R.string.ignore_dark_mode_tips), SwitchView(
-                    DataConst.IGNORE_DARK_MODE, dataBindingRecv = colorModeBinding.getRecv(0))
-            )
+        // 忽略深色模式 (仅 HyperOS)
+        TextSummaryWithSwitch(
+            TextSummaryV(textId = R.string.ignore_dark_mode, tipsId = R.string.ignore_dark_mode_tips), SwitchView(
+                DataConst.IGNORE_DARK_MODE, dataBindingRecv = colorModeBinding.getRecv(0))
+        )
 
-        // 移除截图背景
-        if (isMIUI && "android.app.TaskSnapshotHelperImpl".hasClass())
-            TextSummaryWithSwitch(
-                TextSummaryV(textId = R.string.remove_bg_drawable, tipsId = R.string.remove_bg_drawable_tips),
-                SwitchView(DataConst.REMOVE_BG_DRAWABLE)
-            )
+        // 移除截图背景 (仅 HyperOS)
+        TextSummaryWithSwitch(
+            TextSummaryV(textId = R.string.remove_bg_drawable, tipsId = R.string.remove_bg_drawable_tips),
+            SwitchView(DataConst.REMOVE_BG_DRAWABLE)
+        )
     }
 }

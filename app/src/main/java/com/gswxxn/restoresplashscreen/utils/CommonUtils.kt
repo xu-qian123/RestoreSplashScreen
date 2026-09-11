@@ -2,10 +2,8 @@ package com.gswxxn.restoresplashscreen.utils
 
 import android.content.Context
 import android.content.res.Configuration
-import android.os.Build
 import android.widget.Toast
 import java.io.DataOutputStream
-
 /**
  * 通用工具类
  */
@@ -87,11 +85,6 @@ object CommonUtils {
         forEach { if (it !in second) return false }
         return true
     }
-
-    /**
-     * 检查 SDK 版本
-     */
-    val isAtLeastT = Build.VERSION.SDK_INT >= 33
 
     /**
      * 是否处于深色模式

@@ -9,8 +9,8 @@ import com.gswxxn.restoresplashscreen.ui.ConfigAppsActivity
 import com.gswxxn.restoresplashscreen.ui.`interface`.IConfigApps
 import com.gswxxn.restoresplashscreen.view.BlockMIUIItemData
 import com.gswxxn.restoresplashscreen.view.SwitchView
-import com.highcapable.yukihookapi.hook.factory.prefs
-import com.highcapable.yukihookapi.hook.xposed.prefs.data.PrefsData
+import com.gswxxn.restoresplashscreen.data.PrefsData
+import com.gswxxn.restoresplashscreen.utils.prefs
 
 /**
  * 图标 - 忽略应用主动谁知的图标 - 配置应用列表

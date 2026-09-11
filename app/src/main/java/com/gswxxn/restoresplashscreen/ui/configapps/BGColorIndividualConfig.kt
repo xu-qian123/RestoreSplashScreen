@@ -18,7 +18,7 @@ import com.gswxxn.restoresplashscreen.ui.ConfigAppsActivity.Companion.isDarkMode
 import com.gswxxn.restoresplashscreen.ui.`interface`.IConfigApps
 import com.gswxxn.restoresplashscreen.utils.AppInfoHelper
 import com.gswxxn.restoresplashscreen.utils.CommonUtils.toastL
-import com.highcapable.yukihookapi.hook.xposed.prefs.data.PrefsData
+import com.gswxxn.restoresplashscreen.data.PrefsData
 
 /** 单独配置背景颜色 */
 object BGColorIndividualConfig : IConfigApps {

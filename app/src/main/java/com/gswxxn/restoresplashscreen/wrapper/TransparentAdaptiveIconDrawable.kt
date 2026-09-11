@@ -11,7 +11,9 @@ import android.graphics.Shader
 import android.graphics.drawable.AdaptiveIconDrawable
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
-import com.highcapable.yukihookapi.hook.factory.current
+import com.gswxxn.restoresplashscreen.utils.fld
+import com.gswxxn.restoresplashscreen.utils.fldAs
+import com.gswxxn.restoresplashscreen.utils.fldSet
 
 /**
  * 透明背景的 AdaptiveIconDrawable
@@ -20,36 +22,18 @@ class TransparentAdaptiveIconDrawable(
     foregroundDrawable: Drawable
 ) : AdaptiveIconDrawable(ColorDrawable(Color.TRANSPARENT), foregroundDrawable) {
     private var mLayersShader: Shader?
-        get() = this.current().field {
-            name = "mLayersShader"
-            superClass()
-        }.cast<Shader>()
+        get() = this.fld("mLayersShader") as? Shader
         set(value) {
-            this.current().field {
-                name = "mLayersShader"
-                superClass()
-            }.set(value)
+            this.fldSet("mLayersShader", value)
         }
     private val mCanvas
-        get() = this.current().field {
-            name = "mCanvas"
-            superClass()
-        }.cast<Canvas>()!!
+        get() = this.fldAs<Canvas>("mCanvas")!!
     private val mLayersBitmap
-        get() = this.current().field {
-            name = "mLayersBitmap"
-            superClass()
-        }.cast<Bitmap>()
+        get() = this.fld("mLayersBitmap") as? Bitmap
     private val mPaint
-        get() = this.current().field {
-            name = "mPaint"
-            superClass()
-        }.cast<Paint>()!!
+        get() = this.fldAs<Paint>("mPaint")!!
     private val mMaskScaleOnly
-        get() = this.current().field {
-            name = "mMaskScaleOnly"
-            superClass()
-        }.cast<Path>()
+        get() = this.fld("mMaskScaleOnly") as? Path
 
     /**
      * 继承修改自 AdaptiveIconDrawable

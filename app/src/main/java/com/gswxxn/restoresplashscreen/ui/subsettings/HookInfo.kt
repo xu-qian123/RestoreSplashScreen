@@ -1,58 +1,59 @@
 package com.gswxxn.restoresplashscreen.ui.subsettings
 
 import android.widget.LinearLayout
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import com.gswxxn.restoresplashscreen.R
 import com.gswxxn.restoresplashscreen.databinding.ActivitySubSettingsBinding
-import com.gswxxn.restoresplashscreen.hook.base.HookManager
 import com.gswxxn.restoresplashscreen.ui.SubSettings
 import com.gswxxn.restoresplashscreen.ui.`interface`.ISubSettings
 import com.gswxxn.restoresplashscreen.utils.BlockMIUIHelper.addBlockMIUIView
-import com.gswxxn.restoresplashscreen.utils.YukiHelper.getHookInfo
 import com.gswxxn.restoresplashscreen.view.BlockMIUIItemData
 
 /**
- * Hook 信息 界面
+ * Hook 信息界面
+ *
+ * 仅展示本版本预期的 Hook 点 (Android 17 / HyperOS 4 真机签名),
+ * 实际命中情况请查看 LSPosed 日志
  */
-object HookInfo: ISubSettings {
+object HookInfo : ISubSettings {
     override val titleID = R.string.hook_info
     override val demoImageID = null
 
-    /**
-     * 创建一个新的 BlockMIUIItemData 实例
-     */
+    private val points = listOf(
+        "android" to listOf(
+            "com.android.server.wm.ActivityRecord#validateStartingWindowTheme",
+            "com.android.server.wm.ActivityRecord#showStartingWindow",
+            "com.android.server.wm.ActivityRecord#getStartingWindowType"
+        ),
+        "com.android.systemui" to listOf(
+            "SplashscreenContentDrawer#makeSplashScreenContentView(Context, StartingWindowInfo, int, Consumer)",
+            "SplashscreenContentDrawer#getWindowAttrs",
+            "SplashscreenContentDrawer#getBGColorFromCache",
+            "SplashscreenContentDrawer\$SplashViewBuilder#<init>",
+            "SplashscreenContentDrawer\$SplashViewBuilder#createIconDrawable(Drawable, boolean, boolean)",
+            "SplashscreenContentDrawer\$SplashViewBuilder#build",
+            "SplashscreenContentDrawer\$HighResIconProvider#getIcon(ActivityInfo, int, int)",
+            "com.android.miui.launcher3x.icons.IconProvider#getIcon",
+            "com.android.miui.launcher3x.icons.BaseIconFactory#createIconBitmap",
+            "com.android.miui.launcher3x.icons.BaseIconFactory#wrapToAdaptiveIcon",
+            "SplashscreenContentDrawer\$ColorCache\$IconColor#<init>",
+            "ShellTaskOrganizer#removeStartingWindow",
+            "StartingWindowController#removeStartingWindow",
+            "android.app.TaskSnapshotHelperImpl#isMiuiHome"
+        )
+    )
+
     override fun create(context: SubSettings, binding: ActivitySubSettingsBinding): BlockMIUIItemData.() -> Unit = {
-        context.getHookInfo("com.android.systemui") { hookInfo ->
-            redrawView(context, binding.settingItems, hookInfo)
-        }
+        redrawView(context, binding.settingItems)
     }
 
-    /**
-     * 重新绘制视图，使用给定的上下文和钩子管理器的映射。
-     * 从线性布局中移除所有现有视图，并为映射中的每个条目添加新的 TextSummary 视图，
-     * 按照 Hook 是否可能异常以及键进行排序
-     *
-     * @param context 用于创建视图的上下文。
-     * @param linearLayout 要重新绘制的线性布局。
-     * @param map 钩子管理器的映射。
-     */
-    private fun redrawView(context: SubSettings, linearLayout: LinearLayout, map: Map<String, HookManager.HookInfo>) {
+    private fun redrawView(context: SubSettings, linearLayout: LinearLayout) {
         linearLayout.removeAllViews()
         linearLayout.addBlockMIUIView(context) {
-            map.entries.sortedWith(compareBy({ !it.value.isAbnormal }, {it.key})).forEach { (key, hookInfo) ->
-                TextSummary(
-                    text = key,
-                    colorInt = if (hookInfo.isAbnormal) Color.Red.toArgb() else null,
-                    tips = "createCondition: ${hookInfo.createCondition}\n" +
-                            "isMemberFound: ${hookInfo.isMemberFound}\n" +
-                            "hasBeforeHooks: ${hookInfo.hasBeforeHooks}\n" +
-                            "isBeforeHookExecuted: ${hookInfo.isBeforeHookExecuted}\n" +
-                            "hasAfterHooks: ${hookInfo.hasAfterHooks}\n" +
-                            "isAfterHookExecuted: ${hookInfo.isAfterHookExecuted}\n" +
-                            "hasReplaceHook: ${hookInfo.hasReplaceHook}\n" +
-                            "isReplaceHookExecuted: ${hookInfo.isReplaceHookExecuted}"
-                )
+            points.forEach { (scope, methods) ->
+                TitleText(text = scope)
+                methods.forEach { method ->
+                    TextSummary(text = method)
+                }
             }
         }
     }

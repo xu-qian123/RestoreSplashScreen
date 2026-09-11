@@ -1,35 +1,15 @@
-enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
-
 pluginManagement {
     repositories {
-        gradlePluginPortal()
         google()
         mavenCentral()
+        gradlePluginPortal()
     }
 }
-plugins {
-    id("com.highcapable.sweetdependency") version "1.0.4"
-    id("com.highcapable.sweetproperty") version "1.0.8"
-}
-sweetProperty {
-    project(":app") {
-        sourcesCode {
-            isEnable = false
-        }
-        buildScript {
-            extensionName = "property"
-            propertiesFileNames(
-                "local.properties",
-                isAddDefault = true
-            )
-            permanentKeyValues(
-                "KEYSTORE_PATH" to "",
-                "KEYSTORE_PASS" to "",
-                "KEY_ALIAS" to "",
-                "KEY_PASSWORD" to ""
-            )
-            generateFrom(SYSTEM_ENV, ROOT_PROJECT, CURRENT_PROJECT)
-        }
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
     }
 }
 rootProject.name = "RestoreSplashScreen"

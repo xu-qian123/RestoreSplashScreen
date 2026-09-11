@@ -14,7 +14,7 @@ import com.gswxxn.restoresplashscreen.ui.ConfigAppsActivity
 import com.gswxxn.restoresplashscreen.ui.SubSettings
 import com.gswxxn.restoresplashscreen.utils.AppInfoHelper
 import com.gswxxn.restoresplashscreen.view.BlockMIUIItemData
-import com.highcapable.yukihookapi.hook.xposed.prefs.data.PrefsData
+import com.gswxxn.restoresplashscreen.data.PrefsData
 
 /**
  * 配置应用界面接口

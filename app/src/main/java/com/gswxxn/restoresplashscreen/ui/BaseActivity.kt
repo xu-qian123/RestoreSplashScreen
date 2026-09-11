@@ -7,8 +7,6 @@ import android.view.View
 import androidx.core.view.WindowCompat
 import androidx.viewbinding.ViewBinding
 import com.gswxxn.restoresplashscreen.utils.CommonUtils.isDarkMode
-import com.highcapable.yukihookapi.hook.factory.method
-import com.highcapable.yukihookapi.hook.type.android.LayoutInflaterClass
 import java.lang.reflect.ParameterizedType
 
 /**
@@ -45,10 +43,12 @@ abstract class BaseActivity<VB : ViewBinding> : Activity() {
         // 通过反射绑定布局
         javaClass.genericSuperclass.also { type ->
             if (type is ParameterizedType) {
-                binding = (type.actualTypeArguments[0] as Class<*>).method {
-                    name = "inflate"
-                    param(LayoutInflaterClass)
-                }.get().invoke<VB>(layoutInflater) ?: error("binding failed")
+                val bindingClass = type.actualTypeArguments[0] as Class<*>
+                val inflate = bindingClass.declaredMethods.firstOrNull {
+                    it.name == "inflate" && it.parameterCount == 1 &&
+                        it.parameterTypes[0] == android.view.LayoutInflater::class.java
+                }?.apply { isAccessible = true } ?: error("binding failed")
+                binding = inflate.invoke(null, layoutInflater) as VB
                 setContentView(binding.root)
             } else error("binding but got wrong type")
         }

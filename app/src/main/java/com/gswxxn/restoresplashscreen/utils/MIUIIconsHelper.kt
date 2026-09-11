@@ -5,192 +5,193 @@ import android.content.Context
 import android.graphics.drawable.AdaptiveIconDrawable
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.LayerDrawable
+import android.os.UserHandle
 import android.provider.Settings
-import com.gswxxn.restoresplashscreen.hook.NewSystemUIHooker.hook
+import com.gswxxn.restoresplashscreen.hook.Chain
+import com.gswxxn.restoresplashscreen.hook.HookKit
 import com.gswxxn.restoresplashscreen.utils.GraphicUtils.getCenterDrawable
-import com.highcapable.yukihookapi.hook.factory.current
-import com.highcapable.yukihookapi.hook.factory.field
-import com.highcapable.yukihookapi.hook.factory.method
-import com.highcapable.yukihookapi.hook.factory.toClass
-import com.highcapable.yukihookapi.hook.log.YLog
-import com.highcapable.yukihookapi.hook.type.android.ContextClass
-import com.highcapable.yukihookapi.hook.type.android.UserHandleClass
-import com.highcapable.yukihookapi.hook.type.java.BooleanType
-import com.highcapable.yukihookapi.hook.type.java.LongType
-import com.highcapable.yukihookapi.hook.type.java.StringClass
+import io.github.libxposed.api.XposedInterface
+import java.lang.reflect.Method
 
 /**
- * 用于从 MIUI 桌面检索大图标的辅助类
+ * 从 MIUI 桌面检索大图标 / 完美图标 (仅 HyperOS)
  */
 @SuppressLint("DiscouragedApi")
-class MIUIIconsHelper(private val context: Context) {
-    private val miuiHomeContext = context.createPackageContext(
-        "com.miui.home",
-        Context.CONTEXT_INCLUDE_CODE or Context.CONTEXT_IGNORE_SECURITY
-    )
-    private val largeIconsHelperClazz =
-        if (YukiHelper.atLeastMIUI14)
-            "com.miui.maml.util.LargeIconsHelper".toClass(miuiHomeContext.classLoader)
-        else null
-    private val appIconsHelper = "com.miui.maml.util.AppIconsHelper".toClass(miuiHomeContext.classLoader)
+class MIUIIconsHelper(private val kit: HookKit, private val context: Context) {
+    private val miuiHomeContext = try {
+        context.createPackageContext(
+            "com.miui.home",
+            Context.CONTEXT_INCLUDE_CODE or Context.CONTEXT_IGNORE_SECURITY
+        )
+    } catch (t: Throwable) {
+        kit.log.e("create miui.home context failed", t)
+        null
+    }
+    private val homeCl: ClassLoader? = miuiHomeContext?.classLoader
+
+    private fun homeClass(name: String): Class<*>? = homeCl?.let { loadClass(name, it) }
+
     /** 当前是否启用 MIUI 完美图标 */
     val isSupportMIUIModeIcon by lazy {
-        Settings.System.getInt(context.contentResolver, "key_miui_mod_icon_enable", 0) == 1
+        try {
+            Settings.System.getInt(context.contentResolver, "key_miui_mod_icon_enable", 0) == 1
+        } catch (_: Throwable) {
+            false
+        }
     }
 
     init {
         // 防止获取到 System UI 的 Resources
-        "miuix.pickerwidget.date.CalendarFormatSymbols".toClass(miuiHomeContext.classLoader).method {
-            name = "getWeekDays"
-        }.hook {
-            replaceAny {
-                val resources = miuiHomeContext.resources
-                val id = resources.getIdentifier("week_days", "array", "com.miui.home")
-                resources.getStringArray(id)
+        homeClass("miuix.pickerwidget.date.CalendarFormatSymbols")?.let { clazz ->
+            findMethod(clazz, "getWeekDays")?.let { method ->
+                hookQuiet(method, "miuiWeekDays") { chain ->
+                    val resources = miuiHomeContext?.resources
+                    val id = resources?.getIdentifier("week_days", "array", "com.miui.home") ?: 0
+                    if (id != 0) resources?.getStringArray(id) else chain.proceed()
+                }
             }
         }
 
-        // 为获取完美图标时设置一个缓存时间, 避免获取费时图标(如天气)时, 经常显示不出数据的问题 原调用为固定值 0.
-        "com.miui.maml.util.AppIconsHelper".toClass(miuiHomeContext.classLoader).method {
-            name = "getFancyIconDrawable"
-        }.hook {
-            before {
-                val packageName = args(args.indexOfFirst { it is String }).string()
-                val cacheTimeIndex = args.indexOfFirst { it is Long }
-                args(cacheTimeIndex).set(getCacheTime(packageName))
+        // 为完美图标设置缓存时间, 避免天气等费时图标显示问题
+        homeClass("com.miui.maml.util.AppIconsHelper")?.let { clazz ->
+            findMethod(clazz, "getFancyIconDrawable")?.let { method ->
+                hookQuiet(method, "fancyCache") { chain ->
+                    try {
+                        val args = chain.args.toMutableList()
+                        val strIndex = args.indexOfFirst { it is String }
+                        val longIndex = args.indexOfFirst { it is Long }
+                        if (strIndex != -1 && longIndex != -1) {
+                            args[longIndex] = getCacheTime(args[strIndex] as String)
+                            return@hookQuiet chain.proceed(args.toTypedArray())
+                        }
+                    } catch (_: Throwable) {
+                    }
+                    chain.proceed()
+                }
             }
         }
 
-        // 只获取本地天气数据, 不获取网络数据; 参考 https://zhuti.designer.xiaomi.com/docs/blog/weatherApi.html
-        "com.miui.maml.data.ContentProviderBinder".toClass(miuiHomeContext.classLoader).method {
-            name = "getUriText"
-        }.hook {
-            after {
-                if (result == "content://weather/actualWeatherData/1")
-                    result = "content://weather/actualWeatherData/2"
+        // 只获取本地天气数据
+        homeClass("com.miui.maml.data.ContentProviderBinder")?.let { clazz ->
+            findMethod(clazz, "getUriText")?.let { method ->
+                hookQuiet(method, "weatherLocal") { chain ->
+                    val result = chain.proceed() as? String
+                    if (result == "content://weather/actualWeatherData/1")
+                        "content://weather/actualWeatherData/2"
+                    else result
+                }
             }
         }
 
-        // 由于大图标的变更通知不到系统界面, 所以只能每次都重新读取配置
-        if (YukiHelper.atLeastMIUI14) {
-            "com.miui.maml.util.LargeIconsHelper".toClass( miuiHomeContext.classLoader).method {
-                name = "hasLargeIcon"
-            }.hook {
-                before {
-                    largeIconsHelperClazz?.field { name = "sManagerList" }?.get()?.set(null)
+        // 大图标配置每次重读
+        homeClass("com.miui.maml.util.LargeIconsHelper")?.let { clazz ->
+            findMethod(clazz, "hasLargeIcon")?.let { method ->
+                hookQuiet(method, "largeReset") { chain ->
+                    try {
+                        val helperClazz = homeClass("com.miui.maml.util.LargeIconsHelper")
+                        val field = helperClazz?.declaredFields?.firstOrNull { it.name == "sManagerList" }
+                        field?.apply { isAccessible = true }?.set(null, null)
+                    } catch (_: Throwable) {
+                    }
+                    chain.proceed()
                 }
             }
         }
     }
 
-    /**
-     * 检查给定的程序是否存在大图标
-     *
-     * @param packageName 要检查的程序包的名称。
-     * @return 如果程序包有大图标则返回 `true`，否则返回 `false`。
-     */
+    private fun hookQuiet(method: Method, id: String, hooker: (Chain) -> Any?): Boolean {
+        return try {
+            method.isAccessible = true
+            val builder = kit.module.hook(method)
+            builder.setId(id)
+            builder.intercept(XposedInterface.Hooker { chain ->
+                try {
+                    hooker(chain)
+                } catch (t: Throwable) {
+                    kit.log.e("MIUIIcons hook $id failed", t)
+                    try {
+                        chain.proceed()
+                    } catch (_: Throwable) {
+                        null
+                    }
+                }
+            })
+            true
+        } catch (t: Throwable) {
+            kit.log.e("MIUIIcons hook $id register failed", t)
+            false
+        }
+    }
+
+    private fun currentUser(): Any? = try {
+        UserHandle::class.java.getDeclaredField("CURRENT").apply { isAccessible = true }.get(null)
+    } catch (_: Throwable) {
+        null
+    }
+
     fun hasLargeIcon(packageName: String) = try {
-        largeIconsHelperClazz?.method {
-            name = "hasLargeIcon"
-            param(StringClass, StringClass, StringClass, UserHandleClass)
-        }?.get()?.boolean (
-            packageName,
-            null,
-            "desktop",
-            UserHandleClass.field { name = "CURRENT" }.get().any()
-        ) ?: false
-    } catch (e: Throwable) {
-        YLog.error(msg = "Failed to get hasLargeIcon for package $packageName", e = e)
+        val clazz = homeClass("com.miui.maml.util.LargeIconsHelper") ?: return false
+        val method = clazz.declaredMethods.firstOrNull {
+            it.name == "hasLargeIcon" && it.parameterCount == 4
+        }?.apply { isAccessible = true } ?: return false
+        (method.invoke(null, packageName, null, "desktop", currentUser()) as? Boolean) ?: false
+    } catch (t: Throwable) {
+        kit.log.e("hasLargeIcon failed for $packageName", t)
         false
     }
 
-    /**
-     * 获取指定程序包的大图标的尺寸。
-     *
-     * @param packageName 需要获取大图标尺寸的程序包的名称。
-     * @return 如果成功获取大图标的尺寸则返回该尺寸，否则在捕获异常后返回null。
-     */
-    fun getLargeIconSize(packageName: String) = try {
-        val iconsConfigs = largeIconsHelperClazz?.method {
-            name = "getLargeIconConfigFile"
-            param(StringClass, BooleanType)
-        }?.get()?.call("desktop", false)?.current()
-            ?.method { name = "getIconsConfigs" }
-            ?.invoke<HashMap<String, Any>>()
-        iconsConfigs?.get(packageName)?.current()?.field { name = "size" }?.string()
-    } catch (e: Throwable) {
-        YLog.error(msg = "Failed to get hasLargeIcon for package $packageName", e = e)
+    fun getLargeIconSize(packageName: String): String? = try {
+        val clazz = homeClass("com.miui.maml.util.LargeIconsHelper") ?: return null
+        val configFile = clazz.declaredMethods.firstOrNull {
+            it.name == "getLargeIconConfigFile" && it.parameterCount == 2
+        }?.apply { isAccessible = true }?.invoke(null, "desktop", false) ?: return null
+        val configs = findMethod(configFile.javaClass, "getIconsConfigs")?.invoke(configFile)
+            as? HashMap<*, *> ?: return null
+        val entry = configs[packageName] ?: return null
+        entry.fldAs<String>("size")
+    } catch (t: Throwable) {
+        kit.log.e("getLargeIconSize failed for $packageName", t)
         null
     }
 
-    /**
-     * 获取指定包名的大图标
-     *
-     * @param packageName 应用程序的包名
-     * @return 原始大图标可绘制对象，如果未找到则为 null
-     */
-    fun getLargeIconDrawable(packageName: String) = try {
-        largeIconsHelperClazz?.method {
-            name = "getLargeIconDrawable"
-            param(ContextClass, StringClass, StringClass, StringClass, StringClass, LongType, UserHandleClass)
-        }?.get()?.call(
-            miuiHomeContext,
-            packageName,
-            null,
-            "desktop",
-            null,
-            0L,
-            UserHandleClass.field { name = "CURRENT" }.get().any()
-        )?.current()?.method { name = "getDrawable" }?.invoke<Drawable>()
-    } catch (e: Throwable) {
-        YLog.error(msg = "Failed to get large icon drawable for package $packageName", e = e)
-        null
-    }
-
-    /**
-     * 从指定的应用程序包中获取完美的图标 Drawable
-     *
-     * @param packageName 要获取图标的应用程序包的包名。
-     * @return 如果成功获取到完美图标，则返回一个 BitmapDrawable；如果发生错误，则返回 null。
-     */
-    fun getFancyIconDrawable(packageName: String) = try {
-        val drawable = appIconsHelper.method {
-            name = "getIconDrawable"
-            param(ContextClass, StringClass, StringClass, LongType)
-        }.get().call(
-            context,
-            packageName,
-            null,
-            getCacheTime(packageName),
+    fun getLargeIconDrawable(packageName: String): Drawable? = try {
+        val home = miuiHomeContext ?: return null
+        val clazz = homeClass("com.miui.maml.util.LargeIconsHelper") ?: return null
+        val method = clazz.declaredMethods.firstOrNull {
+            it.name == "getLargeIconDrawable" && it.parameterCount == 7
+        }?.apply { isAccessible = true } ?: return null
+        val result = method.invoke(
+            null, home, packageName, null, "desktop", null, 0L, currentUser()
         )
-
-        if (drawable is AdaptiveIconDrawable && drawable.javaClass.name == "com.miui.maml.MamlAdaptiveIconDrawable"){
-            val layer0QuietDrawable = drawable.background.current().method { name = "getQuietDrawable" }.invoke<Drawable>()!!
-            val layerFancyDrawables = drawable.current().method { name = "getLayerFancyDrawables" }.invoke<ArrayList<Drawable>>()!!
-
-            layerFancyDrawables.add(0, layer0QuietDrawable)
-
-            getCenterDrawable(
-                LayerDrawable(layerFancyDrawables.toTypedArray()),
-                0.65f,
-                context.resources
-            )
-        } else if (drawable?.javaClass?.name == "com.miui.maml.FancyDrawable") {
-            drawable
-        } else null
-    } catch (e: Throwable) {
-        YLog.error(msg = "Failed to get FancyIconDrawable with package: $packageName", e = e)
+        findMethod(result.javaClass, "getDrawable")?.invoke(result) as? Drawable
+    } catch (t: Throwable) {
+        kit.log.e("getLargeIconDrawable failed for $packageName", t)
         null
-    } as Drawable?
+    }
 
-    /**
-     * 返回给定包名的缓存时间。
-     *
-     * @param packageName 要获取缓存时间的包名。
-     * @return 缓存时间(毫秒)。
-     */
+    fun getFancyIconDrawable(packageName: String): Drawable? = try {
+        val clazz = homeClass("com.miui.maml.util.AppIconsHelper") ?: return null
+        val method = clazz.declaredMethods.firstOrNull {
+            it.name == "getIconDrawable" && it.parameterCount == 4
+        }?.apply { isAccessible = true } ?: return null
+        val drawable = method.invoke(null, context, packageName, null, getCacheTime(packageName))
+
+        if (drawable is AdaptiveIconDrawable && drawable.javaClass.name == "com.miui.maml.MamlAdaptiveIconDrawable") {
+            val layer0 = (drawable.background?.call("getQuietDrawable")) as? Drawable ?: return null
+            @Suppress("UNCHECKED_CAST")
+            val layers = (drawable.call("getLayerFancyDrawables") as? ArrayList<Drawable>) ?: return null
+            layers.add(0, layer0)
+            getCenterDrawable(LayerDrawable(layers.toTypedArray()), 0.65f, context.resources)
+        } else if (drawable?.javaClass?.name == "com.miui.maml.FancyDrawable") {
+            drawable as Drawable
+        } else null
+    } catch (t: Throwable) {
+        kit.log.e("getFancyIconDrawable failed for $packageName", t)
+        null
+    }
+
     private fun getCacheTime(packageName: String) = when (packageName) {
-        "com.miui.weather2" ->  3600000L
+        "com.miui.weather2" -> 3600000L
         "com.android.deskclock" -> 0L
         else -> 86400000L
     }

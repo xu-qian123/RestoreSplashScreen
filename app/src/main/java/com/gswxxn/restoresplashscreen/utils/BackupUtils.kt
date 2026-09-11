@@ -7,7 +7,7 @@ import com.gswxxn.restoresplashscreen.R
 import com.gswxxn.restoresplashscreen.data.ConstValue.CREATE_DOCUMENT_CODE
 import com.gswxxn.restoresplashscreen.data.ConstValue.OPEN_DOCUMENT_CODE
 import com.gswxxn.restoresplashscreen.utils.CommonUtils.toast
-import com.highcapable.yukihookapi.hook.factory.prefs
+import com.gswxxn.restoresplashscreen.utils.prefs
 import org.json.JSONObject
 import java.io.BufferedReader
 import java.io.BufferedWriter

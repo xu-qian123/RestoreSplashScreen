@@ -1,27 +1,30 @@
-@file:Suppress("UnstableApiUsage")
-
 plugins {
-    autowire(libs.plugins.com.android.application)
-    autowire(libs.plugins.org.jetbrains.kotlin.android)
-    autowire(libs.plugins.org.jetbrains.kotlin.plugin.serialization)
-    autowire(libs.plugins.com.google.devtools.ksp)
+    id("com.android.application")
+    id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.serialization")
 }
 
 android {
-    namespace = property.project.namespace
-    compileSdk = property.project.compileSdk
+    namespace = "com.gswxxn.restoresplashscreen"
+    compileSdk = 37
 
     defaultConfig {
-        applicationId = property.project.applicationId
-        minSdk = property.project.minSdk
-        targetSdk = property.project.targetSdk
-        versionCode = property.project.versionCode
-        versionName = property.project.versionName
+        applicationId = "com.gswxxn.restoresplashscreen"
+        minSdk = 37
+        targetSdk = 37
+        versionCode = 4000
+        versionName = "4.0"
     }
 
     packaging.resources {
-        excludes += "**"
-        merges += "META-INF/yukihookapi_init"
+        excludes += setOf(
+            "META-INF/*.version",
+            "META-INF/*.kotlin_module",
+            "META-INF/AL2.0",
+            "META-INF/LGPL2.1",
+            "META-INF/NOTICE*",
+            "META-INF/LICENSE*"
+        )
     }
 
     dependenciesInfo {
@@ -29,18 +32,26 @@ android {
         includeInBundle = false
     }
 
-    val isKeyStoreAvailable = try {
-        property.keystore.path.isNotBlank() && property.keystore.pass.isNotBlank() && property.key.alias.isNotBlank() && property.key.password.isNotBlank()
-    } catch (_: Exception) {
-        false
+    // 签名: 优先读环境变量 (CI), 其次读 local.properties
+    val localProps = java.util.Properties().apply {
+        val f = rootProject.file("local.properties")
+        if (f.exists()) f.inputStream().use { load(it) }
     }
+    fun prop(name: String): String =
+        System.getenv(name) ?: localProps.getProperty(name.lowercase().replace('_', '.'), "")
+    val keystorePath = prop("KEYSTORE_PATH")
+    val keystorePass = prop("KEYSTORE_PASS")
+    val keyAlias = prop("KEY_ALIAS")
+    val keyPassword = prop("KEY_PASSWORD")
+    val isKeyStoreAvailable = keystorePath.isNotBlank() && keystorePass.isNotBlank() &&
+        keyAlias.isNotBlank() && keyPassword.isNotBlank()
     if (isKeyStoreAvailable) {
         signingConfigs {
             create("universal") {
-                storeFile = file(property.keystore.path)
-                storePassword = property.keystore.pass
-                keyAlias = property.key.alias
-                keyPassword = property.key.password
+                storeFile = file(keystorePath)
+                storePassword = keystorePass
+                keyAlias = keyAlias
+                keyPassword = keyPassword
                 enableV1Signing = true
                 enableV2Signing = true
                 enableV3Signing = true
@@ -62,8 +73,8 @@ android {
     productFlavors {
         create("CI") {
             dimension = "tier"
-            versionCode = defaultConfig.versionCode?.plus(1)
-            versionName = "${defaultConfig.versionName?.split(" - ")?.get(0)}-CI.${getGitHeadRefsSuffix(rootProject)}"
+            versionCode = 4001
+            versionName = "4.0-CI.${getGitHeadRefsSuffix(rootProject)}"
         }
         create("app") {
             dimension = "tier"
@@ -95,18 +106,17 @@ android {
 }
 
 dependencies {
-    implementation(projects.blockmiui)
-    compileOnly(de.robv.android.xposed.api)
-    implementation(com.highcapable.yukihookapi.api)
-    ksp(com.highcapable.yukihookapi.ksp.xposed)
-    implementation(androidx.palette.palette.ktx)
-    implementation(androidx.compose.material3.material3)
-    implementation(org.jetbrains.kotlinx.kotlinx.coroutines.android)
-    implementation(org.jetbrains.kotlinx.kotlinx.serialization.json)
+    implementation(project(":blockmiui"))
+    compileOnly("io.github.libxposed:api:102.0.0")
+    implementation("io.github.libxposed:service:102.0.0")
+    implementation("androidx.palette:palette-ktx:1.0.0")
+    implementation("androidx.compose.material3:material3:1.4.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
 }
 
 tasks.register("getVersionCode") {
-    println("${property.project.versionCode}-${property.project.versionName}")
+    println("4000-4.0")
 }
 
 /**

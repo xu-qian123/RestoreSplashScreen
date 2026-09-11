@@ -28,8 +28,8 @@ import cn.fkj233.ui.activity.view.LinearContainerV
 import cn.fkj233.ui.activity.view.TextSummaryV
 import cn.fkj233.ui.activity.view.TextV
 import com.gswxxn.restoresplashscreen.R
-import com.highcapable.yukihookapi.hook.factory.prefs
-import com.highcapable.yukihookapi.hook.xposed.prefs.data.PrefsData
+import com.gswxxn.restoresplashscreen.data.PrefsData
+import com.gswxxn.restoresplashscreen.utils.prefs
 
 class SeekBarWithTitleView(
     private val titleID: Int,

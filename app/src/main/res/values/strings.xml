@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">启动遮罩进化</string>
+    <string name="xposed_description">为 Splash Screen 添加自定义选项\n酷安@迷璐</string>
 
     <!--主页-->
     <string name="module_version">模块版本：%s</string>

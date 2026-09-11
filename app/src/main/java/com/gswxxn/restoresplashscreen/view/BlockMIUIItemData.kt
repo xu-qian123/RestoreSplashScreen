@@ -9,7 +9,7 @@ import android.widget.TextView
 import cn.fkj233.ui.activity.data.DataBinding
 import cn.fkj233.ui.activity.data.Padding
 import cn.fkj233.ui.activity.view.*
-import com.highcapable.yukihookapi.hook.xposed.prefs.data.PrefsData
+import com.gswxxn.restoresplashscreen.data.PrefsData
 
 /**
  * 复制自 [cn.fkj233.ui.activity.data.InitView], 后续可能会使用更优办法实现, 而不是复制整个类

@@ -18,16 +18,12 @@ import com.gswxxn.restoresplashscreen.utils.BlockMIUIHelper.addBlockMIUIView
 import com.gswxxn.restoresplashscreen.utils.CommonUtils.execShell
 import com.gswxxn.restoresplashscreen.utils.CommonUtils.toast
 import com.gswxxn.restoresplashscreen.utils.GraphicUtils.shrinkIcon
+import com.gswxxn.restoresplashscreen.utils.Prefs
+import com.gswxxn.restoresplashscreen.utils.prefs
 import com.gswxxn.restoresplashscreen.view.NewMIUIDialog
-import com.highcapable.yukihookapi.YukiHookAPI
-import com.highcapable.yukihookapi.YukiHookAPI.Status.Executor
-import com.highcapable.yukihookapi.hook.factory.dataChannel
-import com.highcapable.yukihookapi.hook.factory.prefs
 
 /** 主界面 */
 class MainSettingsActivity : BaseActivity<ActivityMainSettingsBinding>() {
-    private var systemUIRestartNeeded: Boolean = true
-    private var androidRestartNeeded: Boolean? = null
     private var isReady = false
 
     private var devSettingsView: View? = null
@@ -42,6 +38,10 @@ class MainSettingsActivity : BaseActivity<ActivityMainSettingsBinding>() {
 
         Thread.sleep(400)
         isReady = true
+
+        // 连接 LSPosed 远端配置服务
+        Prefs.ensureService(this)
+        Prefs.onServiceChanged = { runOnUiThread { refreshState() } }
 
         // 显示版本号
         binding.mainTextVersion.text = getString(R.string.module_version, BuildConfig.VERSION_NAME)
@@ -141,48 +141,44 @@ class MainSettingsActivity : BaseActivity<ActivityMainSettingsBinding>() {
     }
 
     private fun refreshState() {
-        val takeAction = androidRestartNeeded == true || systemUIRestartNeeded
+        val active = Prefs.isModuleActive
+        // 作用域缺失则提示需要配置
+        val scopeOk = Prefs.scope.isEmpty() ||
+            ("com.android.systemui" in Prefs.scope && "android" in Prefs.scope)
+        val takeAction = active && !scopeOk
         binding.mainStatus.setBackgroundResource(
             when {
-                YukiHookAPI.Status.isXposedModuleActive && takeAction -> R.drawable.bg_yellow_round
-                YukiHookAPI.Status.isXposedModuleActive -> R.drawable.bg_green_round
+                active && takeAction -> R.drawable.bg_yellow_round
+                active -> R.drawable.bg_green_round
                 else -> R.drawable.bg_dark_round
             }
         )
         binding.mainImgStatus.setImageResource(
             when {
-                YukiHookAPI.Status.isXposedModuleActive && !takeAction -> R.drawable.ic_success
+                active && !takeAction -> R.drawable.ic_success
                 else -> R.drawable.ic_warn
             }
         )
         binding.mainTextStatus.text =
             when {
-                YukiHookAPI.Status.isXposedModuleActive && takeAction ->
-                    getString(R.string.module_is_updated, getString(if (androidRestartNeeded == true) R.string.phone else R.string.system_ui))
+                active && takeAction ->
+                    getString(R.string.module_is_updated, getString(R.string.system_ui))
 
-                YukiHookAPI.Status.isXposedModuleActive -> getString(R.string.module_is_active)
+                active -> getString(R.string.module_is_active)
                 else -> getString(R.string.module_is_not_active)
             }
-        showView(YukiHookAPI.Status.isXposedModuleActive, binding.mainTextApiWay)
+        showView(active, binding.mainTextApiWay)
         binding.mainTextApiWay.text = getString(
             R.string.xposed_framework_version,
-            Executor.name,
-            Executor.apiLevel
+            Prefs.frameworkName.ifBlank { "LSPosed" },
+            Prefs.apiVersion
         )
     }
 
     override fun onResume() {
         super.onResume()
+        Prefs.ensureService(this)
         refreshState()
-
-        dataChannel("com.android.systemui").checkingVersionEquals {
-            systemUIRestartNeeded = !it
-            refreshState()
-        }
-        dataChannel("android").checkingVersionEquals {
-            androidRestartNeeded = !it
-            refreshState()
-        }
 
         devSettingsView?.visibility =
             if (prefs().get(DataConst.ENABLE_DEV_SETTINGS)) View.VISIBLE else View.GONE

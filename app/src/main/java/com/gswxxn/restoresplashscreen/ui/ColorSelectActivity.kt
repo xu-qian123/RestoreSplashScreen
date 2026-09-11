@@ -44,8 +44,7 @@ import com.gswxxn.restoresplashscreen.utils.CommonUtils.toast
 import com.gswxxn.restoresplashscreen.utils.GraphicUtils.drawable2Bitmap
 import com.gswxxn.restoresplashscreen.utils.GraphicUtils.getBgColor
 import com.gswxxn.restoresplashscreen.utils.IconPackManager
-import com.highcapable.yukihookapi.hook.factory.method
-import com.highcapable.yukihookapi.hook.factory.prefs
+import com.gswxxn.restoresplashscreen.utils.prefs
 import java.util.Locale
 import java.util.regex.Pattern
 
@@ -205,10 +204,9 @@ class ColorSelectActivity : BaseActivity<ActivityColorSelectBinding>() {
                         "",
                         config = { if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) it.isLocalePreferredLineHeightForMinimumUsed = false }
                     )
-                    this.javaClass.method {
-                        emptyParam()
-                        returnType = EditText::class.java
-                    }.get(this).invoke<EditText>()?.apply {
+                    (this.javaClass.declaredMethods.firstOrNull {
+                        it.parameterCount == 0 && it.returnType == EditText::class.java
+                    }?.apply { isAccessible = true }?.invoke(this) as? EditText)?.apply {
                         addTextChangedListener(object : TextWatcher {
                             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
                             override fun afterTextChanged(s: Editable?) {}

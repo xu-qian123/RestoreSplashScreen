@@ -30,12 +30,12 @@ import cn.fkj233.ui.activity.data.DataBinding
 import cn.fkj233.ui.activity.view.BaseView
 import cn.fkj233.ui.switch.MIUISwitch
 import com.gswxxn.restoresplashscreen.R
-import com.highcapable.yukihookapi.YukiHookAPI
-import com.highcapable.yukihookapi.hook.factory.prefs
-import com.highcapable.yukihookapi.hook.xposed.prefs.data.PrefsData
+import com.gswxxn.restoresplashscreen.data.PrefsData
+import com.gswxxn.restoresplashscreen.utils.Prefs
+import com.gswxxn.restoresplashscreen.utils.prefs
 
 /**
- * 改自 BlockMIUI, 为了适配 YukiHookAPI 的配置存储方式, 后续可能通过反射实现而不是把这个类复制过来
+ * 改自 BlockMIUI, 适配本模块的配置存储方式
  */
 class SwitchView(
     private val pref: PrefsData<Boolean>,
@@ -56,7 +56,7 @@ class SwitchView(
             this.context = context
             it.isChecked = context.prefs().get(pref)
             it.setOnCheckedChangeListener { v, b ->
-                if (!YukiHookAPI.Status.isXposedModuleActive) {
+                if (!Prefs.isModuleActive) {
                     v.isChecked = !b
                     Toast.makeText(context, R.string.make_sure_active, Toast.LENGTH_SHORT).show()
                 } else {

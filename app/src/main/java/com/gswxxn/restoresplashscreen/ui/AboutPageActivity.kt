@@ -15,7 +15,7 @@ import com.gswxxn.restoresplashscreen.databinding.ActivityAboutPageBinding
 import com.gswxxn.restoresplashscreen.utils.CommonUtils.toast
 import com.gswxxn.restoresplashscreen.utils.GraphicUtils.drawable2Bitmap
 import com.gswxxn.restoresplashscreen.utils.GraphicUtils.roundBitmapByShader
-import com.highcapable.yukihookapi.hook.factory.prefs
+import com.gswxxn.restoresplashscreen.utils.prefs
 
 /**
  * 关于页面
@@ -121,10 +121,10 @@ class AboutPageActivity : BaseActivity<ActivityAboutPageBinding>() {
                     "GNU Affero General Public License v3.0"
                 )
                 addLicenseV(
-                    "YukiHookAPI",
-                    "fankes",
-                    "https://github.com/fankes/YukiHookAPI",
-                    "MIT License"
+                    "libxposed",
+                    "LSPosed",
+                    "https://github.com/libxposed/api",
+                    "Apache License 2.0"
                 )
                 addLicenseV(
                     "MiuiHomeR",

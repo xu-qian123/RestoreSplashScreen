@@ -24,3 +24,8 @@
 }
 -keep class kotlin.Unit
 -keep class com.gswxxn.restoresplashscreen.ui.BaseActivity
+-dontwarn io.github.libxposed.annotation.**
+-adaptresourcefilecontents META-INF/xposed/java_init.list
+-keep,allowoptimization,allowobfuscation public class * extends io.github.libxposed.api.XposedModule {
+    public <init>();
+}
