@@ -13,9 +13,13 @@ class HLog(private val module: XposedModule, private val prefs: HookPrefs) {
             if (System.currentTimeMillis() - prefs.get(DataConst.ENABLE_LOG_TIMESTAMP) > 86400000) return
             msg.forEach {
                 try {
-                    module.log(Log.INFO, "RestoreSplashScreen", it)
+                    android.util.Log.i("RestoreSplashScreen", it)
                 } catch (_: Throwable) {
-                    Log.i("RestoreSplashScreen", it)
+                }
+                try {
+                    module.log(android.util.Log.INFO, "RestoreSplashScreen", it)
+                } catch (_: Throwable) {
+                    android.util.Log.i("RestoreSplashScreen", it)
                 }
             }
         } catch (_: Throwable) {
@@ -24,9 +28,13 @@ class HLog(private val module: XposedModule, private val prefs: HookPrefs) {
 
     fun e(msg: String, t: Throwable) {
         try {
-            module.log(Log.ERROR, "RestoreSplashScreen", "$msg: ${t.message}")
+            android.util.Log.e("RestoreSplashScreen", msg, t)
         } catch (_: Throwable) {
-            Log.e("RestoreSplashScreen", msg, t)
+        }
+        try {
+            module.log(android.util.Log.ERROR, "RestoreSplashScreen", "$msg: ${t.message}")
+        } catch (_: Throwable) {
+            android.util.Log.e("RestoreSplashScreen", msg, t)
         }
     }
 }

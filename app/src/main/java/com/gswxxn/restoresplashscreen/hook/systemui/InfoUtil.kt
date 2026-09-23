@@ -10,11 +10,15 @@ fun pkgFromStartingInfo(info: Any?): Pair<String, String> {
     if (info == null) return "" to ""
     return try {
         val activityInfo = info.fld("targetActivityInfo")
+        val taskTop = info.fld("taskInfo")?.fld("topActivity") as? ComponentName
         val pkg = (activityInfo?.fld("packageName") as? String)
-            ?: ((info.fld("taskInfo")?.fld("topActivity") as? ComponentName)?.packageName)
+            ?: taskTop?.packageName
             ?: (info.fld("mlaunchPackageName") as? String)
             ?: ""
-        val activity = (activityInfo?.fld("targetActivity") as? String) ?: ""
+        val activity = (activityInfo?.fld("targetActivity") as? String)
+            ?.takeIf { it.isNotBlank() }
+            ?: taskTop?.className
+            ?: ""
         pkg to activity
     } catch (_: Throwable) {
         "" to ""

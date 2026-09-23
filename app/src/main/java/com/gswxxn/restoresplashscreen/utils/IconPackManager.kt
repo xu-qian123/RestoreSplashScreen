@@ -138,6 +138,22 @@ class IconPackManager(private val mContext: Context, private val packageName: St
     }
 
     /**
+     * 按组件名做 drawable 资源名兜底
+     * (ComponentInfo{a.b/c.D} -> a_b_c_d), 部分图标包只有资源没有 appfilter 条目
+     */
+    fun getIconByComponentDrawableName(componentName: String?): Drawable? {
+        if (!mLoaded) load()
+        if (iconPackRes == null || componentName == null) return null
+        val start = componentName.indexOf("{") + 1
+        val end = componentName.indexOf("}", start)
+        if (end <= start) return null
+        val drawableName = componentName.substring(start, end).lowercase(Locale.getDefault())
+            .replace(".", "_").replace("/", "_")
+        return if (iconPackRes!!.getIdentifier(drawableName, "drawable", packageName) > 0)
+            loadDrawable(drawableName) else null
+    }
+
+    /**
      * 获取可用的图标包列表
      *
      * @return [Map] key: 图标包包名; value: 图标包应用名. 默认添加一个键值均为 None 的键值对

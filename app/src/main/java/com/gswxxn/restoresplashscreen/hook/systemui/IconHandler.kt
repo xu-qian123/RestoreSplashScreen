@@ -110,8 +110,17 @@ object IconHandler {
         )
 
         // 图标主入口 (HyperOS WMShell 高分辨率 Provider)
+        // 第一个参数即 ActivityInfo, 顺手补齐会话中的 Activity (入口处可能为空)
         val iconHook = kit.after { chain: Chain, result: Any? ->
             if (!Session.hooking || Session.except) return@after result
+            if (Session.activity.isBlank()) {
+                try {
+                    val ai = chain.args.firstOrNull()
+                    Session.activity = (ai?.fld("targetActivity") as? String) ?: ""
+                    if (Session.activity.isNotBlank()) log.i("getIcon(): activity resolved as ${Session.activity}")
+                } catch (_: Throwable) {
+                }
+            }
             val drawable = result as? Drawable ?: return@after result
             try {
                 processIconDrawable(kit, drawable)
@@ -273,8 +282,11 @@ object IconHandler {
         return try {
             kit.log.i("getIcon(): use Icon Pack")
             when {
-                pkg == "com.android.contacts" && activity == "com.android.contacts.activities.PeopleActivity" ->
-                    manager.getIconByComponentName("ComponentInfo{com.android.contacts/com.android.contacts.activities.TwelveKeyDialer}")
+                // 通讯录与拨号在桌面是不同图标, 只按实际启动组件查包;
+                // 查不到就返回 null 走后续分支, 禁止回退到包主入口 (拨号) 图标
+                pkg == "com.android.contacts" ->
+                    manager.getIconByComponentName("ComponentInfo{$pkg/$activity}")
+                        ?: manager.getIconByComponentDrawableName("ComponentInfo{$pkg/$activity}")
                 else -> manager.getIconByPackageName(pkg)
             }
         } catch (t: Throwable) {
@@ -288,10 +300,12 @@ object IconHandler {
         return try {
             kit.log.i("getIcon(): replace way of getting icon")
             when {
-                pkg == "com.android.contacts" && activity == "com.android.contacts.activities.PeopleActivity" ->
-                    host.packageManager.getActivityIcon(
-                        ComponentName("com.android.contacts", "com.android.contacts.activities.TwelveKeyDialer")
-                    )
+                // 通讯录与拨号在桌面是不同图标, 按实际启动的 Activity 取图标, 失败回退到包图标
+                pkg == "com.android.contacts" && activity.isNotBlank() -> try {
+                    host.packageManager.getActivityIcon(ComponentName(pkg, activity))
+                } catch (_: Throwable) {
+                    host.packageManager.getApplicationIcon(pkg)
+                }
                 pkg == "com.android.settings" && activity == "com.android.settings.BackgroundApplicationsManager" ->
                     host.packageManager.getApplicationIcon("com.android.settings")
                 else -> host.packageManager.getApplicationIcon(pkg)
