@@ -110,16 +110,21 @@ object IconHandler {
         )
 
         // 图标主入口 (HyperOS WMShell 高分辨率 Provider)
-        // 第一个参数即 ActivityInfo, 顺手补齐会话中的 Activity (入口处可能为空)
+        // 第一个参数即 ActivityInfo, 用它校准会话中的 Activity (入口处可能为空, 且 alias 只有这里能拿到)
         val iconHook = kit.after { chain: Chain, result: Any? ->
             if (!Session.hooking || Session.except) return@after result
-            if (Session.activity.isBlank()) {
-                try {
-                    val ai = chain.args.firstOrNull()
-                    Session.activity = (ai?.fld("targetActivity") as? String) ?: ""
-                    if (Session.activity.isNotBlank()) log.i("getIcon(): activity resolved as ${Session.activity}")
-                } catch (_: Throwable) {
+            try {
+                val ai = chain.args.firstOrNull()
+                // ActivityInfo.name 才是实际启动组件 (alias 保留), targetActivity 是 alias 目标, 不可用于区分图标
+                val name = (ai?.fld("name") as? String)?.takeIf { it.isNotBlank() }
+                val aiPkg = ai?.fld("packageName") as? String
+                if (name != null && name != Session.activity &&
+                    (Session.packageName.isBlank() || aiPkg == null || aiPkg == Session.packageName)
+                ) {
+                    Session.activity = name
+                    log.i("getIcon(): activity resolved as $name")
                 }
+            } catch (_: Throwable) {
             }
             val drawable = result as? Drawable ?: return@after result
             try {

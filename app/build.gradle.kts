@@ -14,8 +14,8 @@ android {
         applicationId = "com.gswxxn.restoresplashscreen"
         minSdk = 37
         targetSdk = 37
-        versionCode = 4000
-        versionName = "4.0"
+        versionCode = 4001
+        versionName = "4.0.1"
     }
 
     packaging.resources {
@@ -73,8 +73,8 @@ android {
     productFlavors {
         create("CI") {
             dimension = "tier"
-            versionCode = 4001
-            versionName = "4.0-CI.${getGitHeadRefsSuffix(rootProject)}"
+            versionCode = 4002
+            versionName = "4.0.1-CI.${getGitHeadRefsSuffix(rootProject)}"
         }
         create("app") {
             dimension = "tier"
@@ -116,7 +116,7 @@ dependencies {
 }
 
 tasks.register("getVersionCode") {
-    println("4000-4.0")
+    println("4001-4.0.1")
 }
 
 /**

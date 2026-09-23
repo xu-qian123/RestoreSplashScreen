@@ -9,14 +9,21 @@ import com.gswxxn.restoresplashscreen.utils.fld
 fun pkgFromStartingInfo(info: Any?): Pair<String, String> {
     if (info == null) return "" to ""
     return try {
+        val taskInfo = info.fld("taskInfo")
         val activityInfo = info.fld("targetActivityInfo")
-        val taskTop = info.fld("taskInfo")?.fld("topActivity") as? ComponentName
+        val taskTopInfo = taskInfo?.fld("topActivityInfo")
+        val taskTop = taskInfo?.fld("topActivity") as? ComponentName
         val pkg = (activityInfo?.fld("packageName") as? String)
+            ?: (taskTopInfo?.fld("packageName") as? String)
             ?: taskTop?.packageName
             ?: (info.fld("mlaunchPackageName") as? String)
             ?: ""
-        val activity = (activityInfo?.fld("targetActivity") as? String)
+        // 实际启动组件必须取 ActivityInfo.name (alias 会保留):
+        // - targetActivityInfo 可能为 null, 此时 SplashscreenContentDrawer 会回退用 taskInfo.topActivityInfo
+        // - taskInfo.topActivity 是 realActivity, 拨号 alias 会被解析成 PeopleActivity, 导致图标混淆
+        val activity = (activityInfo?.fld("name") as? String)
             ?.takeIf { it.isNotBlank() }
+            ?: (taskTopInfo?.fld("name") as? String)?.takeIf { it.isNotBlank() }
             ?: taskTop?.className
             ?: ""
         pkg to activity
